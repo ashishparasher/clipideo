@@ -1,0 +1,1 @@
+{"root":["./src/app.test.tsx","./src/app.tsx","./src/main.tsx","./src/lib/exporter.ts","./src/lib/project.ts","./src/lib/ranking.test.ts","./src/lib/ranking.ts","./src/lib/render.ts","./src/lib/storage.test.ts","./src/lib/storage.ts","./src/lib/title.test.ts","./src/lib/title.ts","./src/lib/types.ts","./src/test/setup.ts"],"version":"5.9.3"}
