@@ -5,7 +5,8 @@ export function drawRankingFrame(
   ctx: CanvasRenderingContext2D,
   project: Project,
   video: HTMLVideoElement | null,
-  activeSlot?: RankingSlot
+  activeSlot?: RankingSlot,
+  progress: number = 1 // 0.0 to 1.0 representing the clip playback progress
 ): void {
   const { width, height, background, videoHeightPercent } = project.canvas;
   const title = project.title;
@@ -19,26 +20,64 @@ export function drawRankingFrame(
   ctx.fillRect(0, 0, width, title.bandHeight);
 
   if (video && video.readyState >= 2) {
+    if (project.canvas.filter && project.canvas.filter !== "none") {
+      ctx.filter = project.canvas.filter;
+    }
     drawCoverVideo(ctx, video, 0, videoTop, width, Math.min(videoHeight, height - videoTop));
+    ctx.filter = "none";
   }
 
-  drawTitle(ctx, project);
+  // Dip-to-black video transition (fades video overlay at start/end)
+  if (project.export.transition === "dip-to-black") {
+    let alpha = 0;
+    const fadeDuration = 0.15; // 15% of clip duration
+    if (progress < fadeDuration) {
+      alpha = 1 - (progress / fadeDuration);
+    } else if (progress > 1 - fadeDuration) {
+      alpha = (progress - (1 - fadeDuration)) / fadeDuration;
+    }
+    if (alpha > 0) {
+      ctx.fillStyle = `rgba(0, 0, 0, ${alpha})`;
+      ctx.fillRect(0, videoTop, width, Math.min(videoHeight, height - videoTop));
+    }
+  }
+
+  drawTitle(ctx, project, progress);
   drawNumberStack(ctx, project, activeSlot);
+  drawWatermark(ctx, project);
 }
 
-export function drawTitle(ctx: CanvasRenderingContext2D, project: Project): void {
+export function drawTitle(ctx: CanvasRenderingContext2D, project: Project, progress: number = 1): void {
   const { title } = project;
   const lines = title.text.split("\n").slice(0, 2);
   const fontFamily = title.fontFamily || "Impact";
+  
+  ctx.save();
   ctx.textBaseline = "top";
   ctx.textAlign = title.align;
   ctx.font = `900 ${title.fontSize}px "${fontFamily}", Arial Black, Impact, sans-serif`;
   ctx.lineJoin = "round";
 
+  // Text Animation
+  if (title.animation === "pop" && progress < 0.15) {
+    const scale = 0.8 + (progress / 0.15) * 0.2;
+    ctx.translate(title.x, title.y + (lines.length * title.fontSize) / 2);
+    ctx.scale(scale, scale);
+    ctx.translate(-title.x, -(title.y + (lines.length * title.fontSize) / 2));
+  }
+
   const lineHeight = title.fontSize * 1.05;
   lines.forEach((line, index) => {
-    drawHighlightedLine(ctx, line, title.highlightedWords, title.x, title.y + index * lineHeight, project);
+    let renderLine = line;
+    if (title.animation === "typewriter") {
+      const charsToShow = Math.floor(progress * line.length * 3); // Faster typewriter
+      renderLine = line.slice(0, Math.max(0, charsToShow));
+    }
+    if (renderLine) {
+      drawHighlightedLine(ctx, renderLine, title.highlightedWords, title.x, title.y + index * lineHeight, project);
+    }
   });
+  ctx.restore();
 }
 
 export function drawNumberStack(
@@ -148,4 +187,26 @@ function drawCoverVideo(
   }
 
   ctx.drawImage(video, sourceX, sourceY, sourceWidth, sourceHeight, x, y, width, height);
+}
+
+function drawWatermark(ctx: CanvasRenderingContext2D, project: Project) {
+  if (!project.watermark?.text) return;
+  const { text, opacity, position } = project.watermark;
+  
+  ctx.save();
+  ctx.globalAlpha = opacity || 0.8;
+  ctx.fillStyle = "#ffffff";
+  ctx.font = '600 24px "Inter", sans-serif';
+  ctx.textBaseline = "middle";
+  ctx.textAlign = position.includes("left") ? "left" : "right";
+
+  const margin = 24;
+  const x = position.includes("left") ? margin : project.canvas.width - margin;
+  const y = position.includes("top") ? project.title.bandHeight + margin : project.canvas.height - margin;
+
+  // Tiny drop shadow for readability
+  ctx.shadowColor = "rgba(0,0,0,0.5)";
+  ctx.shadowBlur = 4;
+  ctx.fillText(text, x, y);
+  ctx.restore();
 }

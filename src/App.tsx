@@ -182,6 +182,17 @@ function App() {
     attachFileToSlot(slot, file);
   }
 
+  function handleBgmUpload(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("audio/")) {
+      setNotice("Please select an audio file (MP3, WAV).");
+      return;
+    }
+    setFiles((current) => ({ ...current, bgm: file }));
+    setNotice("Background music attached.");
+  }
+
   function handleClipDrop(slot: RankingSlot, event: DragEvent<HTMLLabelElement>) {
     event.preventDefault();
     event.currentTarget.classList.remove("drag-over");
@@ -500,6 +511,19 @@ function App() {
                 }
               />
             </label>
+            <label>
+              Animation
+              <select
+                value={project.title.animation}
+                onChange={(event) =>
+                  updateProject((p) => ({ ...p, title: { ...p.title, animation: event.target.value as any } }))
+                }
+              >
+                <option value="none">None</option>
+                <option value="pop">Pop In</option>
+                <option value="typewriter">Typewriter</option>
+              </select>
+            </label>
           </div>
         </section>
 
@@ -523,6 +547,21 @@ function App() {
                   }))
                 }
               />
+            </label>
+            <label>
+              Video Filter
+              <select
+                value={project.canvas.filter}
+                onChange={(event) =>
+                  updateProject((p) => ({ ...p, canvas: { ...p.canvas, filter: event.target.value as any } }))
+                }
+              >
+                <option value="none">None</option>
+                <option value="grayscale">Grayscale</option>
+                <option value="sepia">Sepia</option>
+                <option value="contrast">High Contrast</option>
+                <option value="blur">Blur</option>
+              </select>
             </label>
             <label>
               Background
@@ -559,6 +598,18 @@ function App() {
               />
             </label>
             <label>
+              Label Spacing
+              <input
+                type="range"
+                min={100}
+                max={300}
+                value={project.label.x}
+                onChange={(event) =>
+                  updateProject((p) => ({ ...p, label: { ...p.label, x: Number(event.target.value) } }))
+                }
+              />
+            </label>
+            <label>
               Label font
               <select
                 className="font-select"
@@ -571,6 +622,78 @@ function App() {
                   <option key={f} value={f}>{f}</option>
                 ))}
               </select>
+            </label>
+            <label>
+              Video Transition
+              <select
+                value={project.export.transition}
+                onChange={(event) =>
+                  updateProject((p) => ({ ...p, export: { ...p.export, transition: event.target.value as any } }))
+                }
+              >
+                <option value="none">Cut (None)</option>
+                <option value="dip-to-black">Dip to Black</option>
+              </select>
+            </label>
+          </div>
+        </section>
+
+        <section className="panel">
+          <div className="section-heading">
+            <h2>Audio & Branding</h2>
+          </div>
+          <div className="grid-controls">
+            <label>
+              Background Music
+              <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                <label className="ghost-button" style={{ flex: 1, minHeight: "42px", cursor: "pointer", display: "grid", placeItems: "center" }}>
+                  {files.bgm ? "BGM Selected" : "Upload MP3"}
+                  <input type="file" accept="audio/*" onChange={handleBgmUpload} style={{ display: "none" }} />
+                </label>
+                {files.bgm && (
+                  <button className="icon-button danger-button" onClick={() => setFiles(f => { const { bgm, ...rest } = f; return rest; })} title="Remove BGM">
+                    <Trash2 size={16} />
+                  </button>
+                )}
+              </div>
+            </label>
+            <label>
+              BGM Volume
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.05}
+                value={project.audio.bgmVolume}
+                onChange={(event) =>
+                  updateProject((p) => ({ ...p, audio: { ...p.audio, bgmVolume: Number(event.target.value) } }))
+                }
+              />
+            </label>
+            <label>
+              Watermark @handle
+              <input
+                type="text"
+                placeholder="@username"
+                value={project.watermark.text}
+                onChange={(event) =>
+                  updateProject((p) => ({ ...p, watermark: { ...p.watermark, text: event.target.value } }))
+                }
+              />
+            </label>
+            <label>
+              Sound Effects
+              <div style={{ display: "flex", alignItems: "center", height: "42px" }}>
+                <input
+                  type="checkbox"
+                  style={{ width: "auto", minHeight: "auto", marginRight: "8px" }}
+                  checked={project.audio.sfxEnabled}
+                  onChange={(event) =>
+                    updateProject((p) => ({ ...p, audio: { ...p.audio, sfxEnabled: event.target.checked } }))
+                  }
+                />
+                Transition SFX
+              </div>
             </label>
           </div>
         </section>
@@ -854,15 +977,16 @@ function NumberPreview({ project, activeSlot }: { project: Project; activeSlot?:
             >
               {slot.rank}.
             </span>
-            <strong
-              style={{
-                opacity: isActive ? 1 : 0.55,
-                color: slot.labelColor || "#ffffff",
-                fontFamily: `"${project.label.fontFamily || "Impact"}", Arial Black, Impact, sans-serif`
-              }}
-            >
-              {slot.label}
-            </strong>
+              <strong
+                style={{
+                  opacity: isActive ? 1 : 0.55,
+                  color: slot.labelColor || "#ffffff",
+                  fontFamily: `"${project.label.fontFamily || "Impact"}", Arial Black, Impact, sans-serif`,
+                  left: `${((project.label.x - project.numbers.x) / project.canvas.width) * 100}%`
+                }}
+              >
+                {slot.label}
+              </strong>
           </div>
         );
       })}

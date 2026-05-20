@@ -34,7 +34,8 @@ export function createProject(): Project {
       width: 1080,
       height: 1920,
       background: "#000000",
-      videoHeightPercent: 76
+      videoHeightPercent: 76,
+      filter: "none"
     },
     title: {
       text: "",
@@ -49,7 +50,8 @@ export function createProject(): Project {
       align: "center",
       x: 540,
       y: 52,
-      bandHeight: 250
+      bandHeight: 250,
+      animation: "none"
     },
     numbers: {
       x: 70,
@@ -75,7 +77,17 @@ export function createProject(): Project {
     export: {
       fps: 30,
       mimeType: "",
-      quality: 0.92
+      quality: 0.92,
+      transition: "none"
+    },
+    audio: {
+      bgmVolume: 0.5,
+      sfxEnabled: false
+    },
+    watermark: {
+      text: "",
+      position: "top-left",
+      opacity: 0.8
     }
   };
 }
@@ -95,15 +107,26 @@ export function normalizeProject(project: Project): Project {
   return {
     ...project,
     updatedAt: new Date().toISOString(),
+    canvas: {
+      ...project.canvas,
+      filter: project.canvas.filter || "none"
+    },
     title: {
       ...project.title,
       fontFamily: project.title.fontFamily || "Impact",
-      wordStyles: project.title.wordStyles || {}
+      wordStyles: project.title.wordStyles || {},
+      animation: project.title.animation || "none"
     },
     label: {
       ...project.label,
       fontFamily: (project.label as any).fontFamily || "Impact"
     },
+    export: {
+      ...project.export,
+      transition: project.export.transition || "none"
+    },
+    audio: project.audio || { bgmVolume: 0.5, sfxEnabled: false },
+    watermark: project.watermark || { text: "", position: "top-left", opacity: 0.8 },
     slots,
     playbackOrder: [...order, ...missing]
   };

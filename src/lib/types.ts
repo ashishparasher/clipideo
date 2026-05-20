@@ -13,6 +13,7 @@ export interface CanvasSettings {
   height: number;
   background: string;
   videoHeightPercent: number;
+  filter: "none" | "grayscale" | "sepia" | "contrast" | "blur";
 }
 
 export interface TitleSettings {
@@ -29,6 +30,7 @@ export interface TitleSettings {
   x: number;
   y: number;
   bandHeight: number;
+  animation: "none" | "pop" | "typewriter";
 }
 
 export interface NumberStackSettings {
@@ -68,6 +70,18 @@ export interface ExportSettings {
   fps: number;
   mimeType: string;
   quality: number;
+  transition: "none" | "dip-to-black";
+}
+
+export interface AudioSettings {
+  bgmVolume: number;
+  sfxEnabled: boolean;
+}
+
+export interface WatermarkSettings {
+  text: string;
+  position: "top-left" | "top-right" | "bottom-left" | "bottom-right";
+  opacity: number;
 }
 
 export interface Project {
@@ -83,6 +97,8 @@ export interface Project {
   playbackOrder: string[];
   slots: RankingSlot[];
   export: ExportSettings;
+  audio: AudioSettings;
+  watermark: WatermarkSettings;
 }
 
 export type ClipFileMap = Record<string, File | undefined>;

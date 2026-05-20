@@ -65,6 +65,22 @@ export async function exportRankingVideo(
   onProgress({ stage: "preparing", message: "Loading fonts…", progress: 0 });
   await document.fonts.ready;
   onProgress({ stage: "preparing", message: "Preparing local render", progress: 0 });
+
+  let bgmAudio: HTMLAudioElement | null = null;
+  let bgmSource: MediaElementAudioSourceNode | null = null;
+  let bgmGain: GainNode | null = null;
+
+  if (files.bgm) {
+    bgmAudio = new Audio(URL.createObjectURL(files.bgm));
+    bgmAudio.loop = true;
+    bgmSource = audioCtx.createMediaElementSource(bgmAudio);
+    bgmGain = audioCtx.createGain();
+    bgmGain.gain.value = project.audio?.bgmVolume ?? 0.5;
+    bgmSource.connect(bgmGain).connect(audioDest);
+    await waitForMetadata(bgmAudio);
+    bgmAudio.play();
+  }
+
   recorder.start(250);
 
   for (let index = 0; index < slots.length; index += 1) {
@@ -77,6 +93,13 @@ export async function exportRankingVideo(
   }
 
   recorder.stop();
+  
+  if (bgmAudio) {
+    bgmAudio.pause();
+    bgmSource?.disconnect();
+    bgmGain?.disconnect();
+    URL.revokeObjectURL(bgmAudio.src);
+  }
   audioCtx.close();
   onProgress({ stage: "done", message: "Finalizing download", progress: 1 });
   return done;
@@ -113,11 +136,15 @@ async function renderSlot(
     await waitForSeek(video);
     await video.play();
 
+    if (index > 0 && project.audio?.sfxEnabled) {
+      playSwoosh(audioCtx, audioDest);
+    }
+
     await new Promise<void>((resolve) => {
       const tick = () => {
         const localProgress = Math.min(1, Math.max(0, (video.currentTime - start) / (end - start)));
         const progress = (index + localProgress) / total;
-        drawRankingFrame(ctx, project, video, slot);
+        drawRankingFrame(ctx, project, video, slot, localProgress);
         onProgress({
           stage: "recording",
           message: `Rendering rank ${slot.rank}`,
@@ -126,7 +153,7 @@ async function renderSlot(
 
         if (video.currentTime >= end || video.ended) {
           video.pause();
-          drawRankingFrame(ctx, project, video, slot);
+          drawRankingFrame(ctx, project, video, slot, 1);
           resolve();
           return;
         }
@@ -141,11 +168,41 @@ async function renderSlot(
   }
 }
 
-function waitForMetadata(video: HTMLVideoElement): Promise<void> {
+function waitForMetadata(video: HTMLMediaElement): Promise<void> {
   return new Promise((resolve, reject) => {
     video.onloadedmetadata = () => resolve();
-    video.onerror = () => reject(new Error("Could not load uploaded clip."));
+    video.onerror = () => reject(new Error("Could not load media file."));
   });
+}
+
+function playSwoosh(audioCtx: AudioContext, dest: MediaStreamAudioDestinationNode) {
+  const duration = 0.5;
+  const bufferSize = audioCtx.sampleRate * duration;
+  const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) {
+    data[i] = Math.random() * 2 - 1; // white noise
+  }
+
+  const noise = audioCtx.createBufferSource();
+  noise.buffer = buffer;
+
+  const filter = audioCtx.createBiquadFilter();
+  filter.type = "bandpass";
+  filter.Q.value = 1.5;
+  filter.frequency.setValueAtTime(400, audioCtx.currentTime);
+  filter.frequency.exponentialRampToValueAtTime(3000, audioCtx.currentTime + duration);
+
+  const gain = audioCtx.createGain();
+  gain.gain.setValueAtTime(0, audioCtx.currentTime);
+  gain.gain.linearRampToValueAtTime(0.4, audioCtx.currentTime + 0.15);
+  gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + duration);
+
+  noise.connect(filter);
+  filter.connect(gain);
+  gain.connect(dest);
+
+  noise.start(audioCtx.currentTime);
 }
 
 function waitForSeek(video: HTMLVideoElement): Promise<void> {

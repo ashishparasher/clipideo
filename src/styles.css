@@ -582,23 +582,25 @@ button:disabled {
   position: absolute;
   display: grid;
   pointer-events: none;
+  width: 100%;
 }
 
 .number-row {
   display: flex;
   align-items: flex-start;
   min-height: 28px;
-  gap: 9px;
+  position: relative;
+  width: 100%;
   font-family: Impact, "Arial Black", sans-serif;
 }
 
 .number-row span {
-  min-width: 42px;
   font-size: 33px;
   line-height: 0.9;
 }
 
 .number-row strong {
+  position: absolute;
   max-width: 210px;
   margin-top: 5px;
   color: #fff;
