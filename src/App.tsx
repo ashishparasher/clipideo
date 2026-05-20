@@ -829,16 +829,20 @@ function TitlePreview({ project }: { project: Project }) {
 }
 
 function NumberPreview({ project, activeSlot }: { project: Project; activeSlot?: RankingSlot }) {
+  const visibleSlots = project.slots.filter((slot) => !slot.hidden);
+  const stackHeight = (visibleSlots.length - 1) * project.numbers.spacing + project.numbers.fontSize;
+  const startY = project.canvas.height / 2 - stackHeight / 2;
+
   return (
     <div
       className="number-stack-preview"
       style={{
         left: `${(project.numbers.x / project.canvas.width) * 100}%`,
-        top: `${(project.numbers.y / project.canvas.height) * 100}%`,
+        top: `${(startY / project.canvas.height) * 100}%`,
         gap: `${(project.numbers.spacing / project.canvas.height) * 100}%`
       }}
     >
-      {project.slots.map((slot, index) => {
+      {visibleSlots.map((slot, index) => {
         const isActive = activeSlot?.id === slot.id;
         return (
           <div className={`number-row ${isActive ? "active" : ""}`} key={slot.id}>

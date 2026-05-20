@@ -53,12 +53,15 @@ export function drawNumberStack(
   ctx.textAlign = "left";
   ctx.lineJoin = "round";
 
-  project.slots.forEach((slot, index) => {
-    if (slot.hidden) {
-      return;
-    }
+  const visibleSlots = project.slots.filter((slot) => !slot.hidden);
+  if (visibleSlots.length === 0) return;
 
-    const y = numbers.y + index * numbers.spacing;
+  const stackHeight = (visibleSlots.length - 1) * numbers.spacing + numbers.fontSize;
+  const startY = project.canvas.height / 2 - stackHeight / 2;
+  const labelOffsetY = label.y - numbers.y; // Maintains the relative baseline difference
+
+  visibleSlots.forEach((slot, index) => {
+    const y = startY + index * numbers.spacing;
     const color = numbers.colors[index] || "#ffffff";
     const rankText = `${slot.rank}.`;
     const isActive = activeSlot?.id === slot.id;
@@ -77,8 +80,8 @@ export function drawNumberStack(
     ctx.strokeStyle = label.strokeColor;
     ctx.lineWidth = label.strokeWidth;
     ctx.fillStyle = slot.labelColor || label.color;
-    ctx.strokeText(slot.label, label.x, label.y + index * numbers.spacing);
-    ctx.fillText(slot.label, label.x, label.y + index * numbers.spacing);
+    ctx.strokeText(slot.label, label.x, y + labelOffsetY);
+    ctx.fillText(slot.label, label.x, y + labelOffsetY);
     ctx.restore();
   });
 }
